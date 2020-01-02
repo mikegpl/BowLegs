@@ -1,0 +1,15 @@
+Windows
+
+
+https://dev.to/gajesh/the-complete-flask-beginner-tutorial-124i
+punkty 1 - 6, ale w 6 trzeba dać na windowsie venv\Scripts\activate
+
+Potem jak poniżej:
+
+Odpalenie wirtualnego środowiska: venv\Scripts\activate
+Ustalenie aplikacji flaskowej do wywołania: set FLASK_APP=application.py
+Włączenie aplikacji flaskowej: flask run
+Wyłączenie wirtualnego środowiska: venv\Scripts\deactivate
+
+uploadowania zdjęcia i maski
+Zapisuje on te zdjęcia do folderu uploads z przedrostkami mask i photo.
