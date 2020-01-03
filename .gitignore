@@ -1,4 +1,8 @@
 venv/
+results/
+dataset_bow-legs/
+__pycache__/
+uploads/
 
 # Editors
 .vscode/
