@@ -22,17 +22,17 @@ os.environ["CUDA_VISIBLE_DEVICES"]='-1'
 
 dir_img_mask = 'results/new/'
 dataset_bow_legs_dir = 'uploads'
-img_names = ['!002115_.png', '!002308_.png']
-mask_names = ['!002115__mask.png', '!002308__mask.png']
+img_names = []
+mask_names = []
+#img_names = ['!002115_.png', '!002308_.png']
+#mask_names = ['!002115__mask.png', '!002308__mask.png']
 # dataset_bow_legs_dir = 'dataset_bow-legs'
 # img_names = ['mask_050/!002115_.png', 'mask_051/!002308_.png']
 # mask_names = ['mask_050/!002115__mask.png', 'mask_051/!002308__mask.png']
 im_shape = (512, 256)
 
 
-# TODO refactor these fun
-
-
+# TODO refactor these funcs
 def load_imgs(im_names):
     _X = []
     for im_name in im_names:
@@ -205,6 +205,10 @@ def save_results_4x(_image, _im_masked_4x):
 
 
 if __name__ == '__main__':
+
+    arr = os.listdir(dataset_bow_legs_dir)
+    img_names = [a for a in arr if a.endswith('png') and not (a.endswith('mask.png'))]
+    mask_names = [a for a in arr if a.endswith('mask.png')]
 
     args = parse_args()
 
