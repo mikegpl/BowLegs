@@ -3,6 +3,8 @@ results/
 dataset_bow-legs/
 __pycache__/
 uploads/
+model/
+models/
 
 # Editors
 .vscode/
