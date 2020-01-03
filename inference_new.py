@@ -194,6 +194,16 @@ def copy_mask_to_results(_image_name_no_extension):
         shutil.copy2(_file_name_in, _file_name_out)
 
 
+def save_results_4x(_image, _im_masked_4x):
+    if args.save_out_images:
+        dir_im_masked_4x = 'results/new/masked_4x'
+        if not os.path.exists(dir_im_masked_4x):
+            os.makedirs(dir_im_masked_4x)
+        im_name_masked_4x = '{}/{}'.format(dir_im_masked_4x, image)
+        _im_masked_4x = img_as_ubyte(_im_masked_4x)
+        io.imsave(im_name_masked_4x, _im_masked_4x)
+
+
 if __name__ == '__main__':
 
     args = parse_args()
@@ -221,11 +231,11 @@ if __name__ == '__main__':
     ious = np.zeros(number_of_test_data)
     dices = np.zeros(number_of_test_data)
     mean_IoU = np.zeros(number_of_test_data)
+    image_counter = 0
 
     for image in img_names:
         print(image)
         image_name_no_extension = os.path.splitext(image)[0]
-        image_counter = 0
 
         xx_ = X[image_counter, :, :, :]
         yy_ = Y[image_counter, :, :, :]
@@ -246,55 +256,43 @@ if __name__ == '__main__':
         # Remove regions smaller than 0.5% of the image
         pr = remove_small_regions(pr, 0.005 * np.prod(im_shape))
         pr_out = img_as_ubyte(pr)
-        
+
         copy_image_to_results(image, pr_opened)
         copy_mask_to_results(image_name_no_extension)
 
         # ---------------------------------------------------------------
         # Conversion to a new size
-        # im_name_x_ray_original_size_test = dataset_bow_legs_dir + '/' + 'x-ray_test/' + file_name
-        ###  data_bow-legs/x-ray/img_0001.png
-        # im_x_ray_original_size = cv2.imread(im_name_x_ray_original_size_test, cv2.IMREAD_GRAYSCALE)
-        #
-        # height, width = im_x_ray_original_size.shape[:2]							# height, width  -- original image size
-        #
-        # ratio = float(height) / width
-        #
-        # new_shape = (4*256, int(4*256*ratio))
-        # im_x_ray_4x = cv2.resize(im_x_ray_original_size, new_shape)
-        #
-        # dir_img_x_ray_4x = 'results/bow-legs_test_4x/'
-        # if not os.path.exists(dir_img_x_ray_4x):
-        #     os.makedirs(dir_img_x_ray_4x)
-        # im_name_x_ray_4x = '{}/{}'.format(dir_img_x_ray_4x, file_name)
-        # cv2.imwrite(im_name_x_ray_4x, im_x_ray_4x)
-        #
-        # # mask
-        # im_mask_original_size = cv2.imread( file_name_in, cv2.IMREAD_GRAYSCALE)
-        # im_mask_4x = cv2.resize(im_mask_original_size, new_shape)
-        # im_name_mask_4x = '{}/{}'.format(dir_img_x_ray_4x, '/' + file_name_no_ext + '_mask_manual' + '.png')
-        # cv2.imwrite( im_name_mask_4x, im_mask_4x)
-        #
-        # # Unet output
-        # pr_openned_4x = cv2.resize( pr_openned, new_shape)
-        # im_name_pr_openned_4x = '{}/{}'.format(dir_img_x_ray_4x, file_name_no_ext + '_mask_Unet' + '.png')
-        # cv2.imwrite(im_name_pr_openned_4x, pr_openned_4x)
-        #
-        # gt_4x = cv2.resize(img_as_ubyte(gt), new_shape)
-        #
-        # gt_4x = gt_4x > 0.5
-        # pr_openned_4x = pr_openned_4x > 0.5
-        # im_x_ray_4x_ = im_x_ray_4x/255
-        # im_masked_4x = masked( im_x_ray_4x, gt_4x, pr_openned_4x, 0.5)			# img.max()=1.0 gt.max()=True pr.max()=True
+        im_name_x_ray_original_size_test = dataset_bow_legs_dir + '/' + 'x-ray_test/' + image
+        im_x_ray_original_size = cv2.imread(im_name_x_ray_original_size_test, cv2.IMREAD_GRAYSCALE)
+        height, width = im_x_ray_original_size.shape[:2]							# height, width  -- original image size
+        ratio = float(height) / width
+        new_shape = (4*256, int(4*256*ratio))
+        im_x_ray_4x = cv2.resize(im_x_ray_original_size, new_shape)
+        dir_img_x_ray_4x = 'results/new/4x/'
+        if not os.path.exists(dir_img_x_ray_4x):
+            os.makedirs(dir_img_x_ray_4x)
+        im_name_x_ray_4x = '{}/{}'.format(dir_img_x_ray_4x, image)
+        cv2.imwrite(im_name_x_ray_4x, im_x_ray_4x)
 
-        # if args.save_out_images:
-        #     dir_im_masked_4x = 'results/bow-legs_masked_4x'
-        #     if not os.path.exists(dir_im_masked_4x):
-        #         os.makedirs(dir_im_masked_4x)
-        #     im_name_masked_4x = '{}/{}'.format(dir_im_masked_4x, file_name)
-        #
-        #     im_masked_4x = img_as_ubyte( im_masked_4x)
-        #     io.imsave( im_name_masked_4x, im_masked_4x)
+        # mask
+        im_mask_original_size = cv2.imread( image, cv2.IMREAD_GRAYSCALE)
+        im_mask_4x = cv2.resize(im_mask_original_size, new_shape)
+        im_name_mask_4x = '{}/{}'.format(dir_img_x_ray_4x, '/' + image_name_no_extension + '_mask_manual' + '.png')
+        cv2.imwrite(im_name_mask_4x, im_mask_4x)
+
+        # Unet output
+        pr_openned_4x = cv2.resize( pr_opened, new_shape)
+        im_name_pr_openned_4x = '{}/{}'.format(dir_img_x_ray_4x, image_name_no_extension + '_mask_Unet' + '.png')
+        cv2.imwrite(im_name_pr_openned_4x, pr_openned_4x)
+
+        gt_4x = cv2.resize(img_as_ubyte(gt), new_shape)
+
+        gt_4x = gt_4x > 0.5
+        pr_openned_4x = pr_openned_4x > 0.5
+        im_x_ray_4x_ = im_x_ray_4x/255
+        im_masked_4x = masked(im_x_ray_4x, gt_4x, pr_openned_4x, 0.5)			# img.max()=1.0 gt.max()=True pr.max()=True
+
+        save_results_4x(image, im_masked_4x)
 
         ious[image_counter] = IoU(gt, pr)
         dices[image_counter] = Dice(gt, pr)
@@ -302,7 +300,6 @@ if __name__ == '__main__':
 
         with open("results/bow-legs_results.txt", "a", newline="\r\n") as f:
             print('{}  {:.4f} {:.4f}'.format(img_names[image_counter], ious[image_counter], dices[image_counter]), file=f)
-
         image_counter += 1
 
     save_mean_results(ious, dices)
