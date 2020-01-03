@@ -38,6 +38,9 @@ def load_imgs(im_names):
     for im_name in im_names:
         print(im_name)
         _img = io.imread(im_name)
+        io.imshow(_img)
+        io.show()
+        input("Press Enter to continue...")
         _img = transform.resize(_img, im_shape,  mode='constant')
         _img = np.expand_dims(_img, -1)
         _X.append(_img)
@@ -261,13 +264,22 @@ if __name__ == '__main__':
         pr = remove_small_regions(pr, 0.005 * np.prod(im_shape))
         pr_out = img_as_ubyte(pr)
 
+        io.imshow(pr)
+        io.show()
+        input("Displaying leg bones... Press Enter to continue...")
+
         copy_image_to_results(image, pr_opened)
         copy_mask_to_results(image_name_no_extension)
+
+        #_file_name_in = dataset_bow_legs_dir + '/' + image_name_no_extension + '_mask' + '.png'
+
 
         # ---------------------------------------------------------------
         # Conversion to a new size
         im_name_x_ray_original_size_test = dataset_bow_legs_dir + '/' + 'x-ray_test/' + image
         im_x_ray_original_size = cv2.imread(im_name_x_ray_original_size_test, cv2.IMREAD_GRAYSCALE)
+
+
         height, width = im_x_ray_original_size.shape[:2]							# height, width  -- original image size
         ratio = float(height) / width
         new_shape = (4*256, int(4*256*ratio))
@@ -281,6 +293,8 @@ if __name__ == '__main__':
         # mask
         im_mask_original_size = cv2.imread( image, cv2.IMREAD_GRAYSCALE)
         im_mask_4x = cv2.resize(im_mask_original_size, new_shape)
+
+
         im_name_mask_4x = '{}/{}'.format(dir_img_x_ray_4x, '/' + image_name_no_extension + '_mask_manual' + '.png')
         cv2.imwrite(im_name_mask_4x, im_mask_4x)
 
@@ -295,6 +309,13 @@ if __name__ == '__main__':
         pr_openned_4x = pr_openned_4x > 0.5
         im_x_ray_4x_ = im_x_ray_4x/255
         im_masked_4x = masked(im_x_ray_4x, gt_4x, pr_openned_4x, 0.5)			# img.max()=1.0 gt.max()=True pr.max()=True
+
+
+        #hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+        #_, contours, _ = cv2.findContours(im_masked_4x, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        #x, y, w, h = cv2.boundingRect(contours[0])
+        #cv2.rectangle(im_masked_4x, (x, y), (x + w, y + h), (0, 255, 0), 2)
+
 
         save_results_4x(image, im_masked_4x)
 
