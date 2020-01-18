@@ -1,6 +1,4 @@
-# https://pydicom.github.io/pydicom/stable/getting_started.html
-import os.path  # from os.path import exists
-
+import os.path
 import cv2
 import imutils as imutils
 import numpy as np
