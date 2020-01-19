@@ -16,8 +16,6 @@ os.environ["CUDA_VISIBLE_DEVICES"] = '-1'
 
 dir_img_mask = 'results/new/'
 dataset_bow_legs_dir = 'uploads'
-img_names = []
-mask_names = []
 im_shape = (512, 256)
 
 
@@ -27,9 +25,6 @@ def load_imgs(im_names):
     for im_name in im_names:
         print(im_name)
         _img = io.imread(im_name)
-        # io.imshow(_img)
-        # io.show()
-        # input("Press Enter to continue...")
         _img = transform.resize(_img, im_shape, mode='constant')
         _img = np.expand_dims(_img, -1)
         _X.append(_img)
@@ -72,103 +67,67 @@ def load_model():
     _loaded_model_json = _json_file.read()
     _json_file.close()
     _loaded_model = model_from_json(_loaded_model_json)
-    print("Model loaded from the disc")
+    print("Model loaded from the disk")
     return _loaded_model
 
 
-def load_weights(file):
-    loaded_model.load_weights(file)
+def load_weights(_loaded_model, file):
+    _loaded_model.load_weights(file)
     print("Weights loaded to model from the disc")
-    return loaded_model
+    return _loaded_model
 
 
-arr = os.listdir(dataset_bow_legs_dir)
-img_names = [a for a in arr if a.endswith('png') and not (a.endswith('mask.png'))]
-mask_names = [a for a in arr if a.endswith('mask.png')]
+# TODO - in app import inference_new, upload image, render mask and call calculate_angle_for_mask
+def render_mask_for_image(im_name, trained_model):
+    print('Start render mask for image {} '.format(im_name))
+    loaded_img = io.imread(im_name)
+    loaded_img = transform.resize(loaded_img, im_shape, mode='constant')
+    loaded_img = np.expand_dims(loaded_img, -1)
 
-full_img_names = get_full_path_for_data(img_names)
-full_mask_names = get_full_path_for_data(mask_names)
-X = load_imgs(full_img_names)
-Y = load_masks(full_mask_names)
-print('Data loaded')
+    loaded_img_array = np.array([loaded_img])
+    loaded_img_array -= loaded_img_array.mean()
+    loaded_img_array /= loaded_img_array.std()
 
-number_of_test_data = X.shape[0]
-input_shape = X[0].shape
-print('X.shape={} Y.shape={}'.format(X.shape, Y.shape))
-
-# Load model and trained weights
-loaded_model = load_model()
-full_model = load_weights("models/trained_model.hdf5")
-
-# Evaluate loaded model on test data
-UNet = loaded_model
-model = loaded_model
-model.compile(optimizer=RMSprop(lr=0.0001), loss=bce_dice_loss, metrics=[dice_coeff])
-print("Model compiled")
-
-image_counter = 0
-
-
-# TODO - implement this method, then in app import inference_new, upload image, render mask and then call calculate_angle_for_mask
-def render_mask_for_image(image):
-    pred = UNet.predict(image)[..., 0].reshape(input_shape[:2])
-    cv2.imshow("Predicted new", pred)
-    cv2.waitKey(0)
-    print("Done")
-    return 0
-
-
-for image in img_names:
-    xx_ = X[image_counter, :, :, :]
-    yy_ = Y[image_counter, :, :, :]
+    xx_ = loaded_img_array[0, :, :, :]
     xx = xx_[None, ...]
-    yy = yy_[None, ...]
 
-    # TODO - this should be used later to calculate angle in separate method
-    mask_for_image = render_mask_for_image(xx) # pack preprocessing into separate method
-    # img = exposure.rescale_intensity(np.squeeze(xx), out_range=(0, 1))
-    # cv2.imshow("Input", img)
-    # cv2.waitKey(0)
-    pred = UNet.predict(xx)[..., 0].reshape(input_shape[:2])
-    """
-    As it turned out, pred is our b/w image of bones (mask). So, there's no point in uploading both image and 
-    its mask - just upload one and calculate the angle.
-    """
-    mask = yy[..., 0].reshape(input_shape[:2])
-    # cv2.imshow("prediction", pred)
-    # cv2.waitKey(0)
+    predicted_mask = trained_model.predict(xx)[..., 0].reshape(loaded_img_array[0].shape[:2])
 
-    gt = mask > 0.5
-    pr = pred > 0.5
-
-    pr_bin = img_as_ubyte(pr)
-    pr_opened = morphology.opening(pr_bin)
+    # Binary masks
+    pr = predicted_mask > 0.5
 
     # Remove regions smaller than 0.5% of the image
     pr = remove_small_regions(pr, 0.005 * np.prod(im_shape))
     pr_out = img_as_ubyte(pr)
 
+    cv2.imshow("Mask for image", pr_out)
+    cv2.waitKey(0)
+    print("Render mask for image - done")
+    return pr_out
+
+
+def angle_from_mask(_mask):
     # TODO Analyze the angle of bone
-    _, contours, _ = cv2.findContours(pr_out.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-    backtorgb = cv2.cvtColor(pr_out, cv2.COLOR_GRAY2RGB)
+    _, contours, _ = cv2.findContours(_mask.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    backtorgb = cv2.cvtColor(_mask, cv2.COLOR_GRAY2RGB)
 
     # Finding extreme points
-    cnts = cv2.findContours(pr_out.copy(), cv2.RETR_EXTERNAL,
+    cnts = cv2.findContours(_mask.copy(), cv2.RETR_EXTERNAL,
                             cv2.CHAIN_APPROX_SIMPLE)
     cnts = imutils.grab_contours(cnts)
     c = max(cnts, key=cv2.contourArea)
     # determine the most extreme points along the contour
-    extLeft = tuple(c[c[:, :, 0].argmin()][0])
-    extRight = tuple(c[c[:, :, 0].argmax()][0])
-    extTop = tuple(c[c[:, :, 1].argmin()][0])
-    extBot = tuple(c[c[:, :, 1].argmax()][0])
+    extreme_left = tuple(c[c[:, :, 0].argmin()][0])
+    extreme_right = tuple(c[c[:, :, 0].argmax()][0])
+    extreme_top = tuple(c[c[:, :, 1].argmin()][0])
+    extreme_bottom = tuple(c[c[:, :, 1].argmax()][0])
 
     # draw the outline of the object and extreme points
     cv2.drawContours(backtorgb, [c], -1, (0, 255, 255), 2)
-    cv2.circle(backtorgb, extLeft, 8, (0, 0, 255), -1)
-    cv2.circle(backtorgb, extRight, 8, (0, 255, 0), -1)
-    cv2.circle(backtorgb, extTop, 8, (255, 0, 0), -1)
-    res = cv2.circle(backtorgb, extBot, 8, (255, 255, 0), -1)
+    cv2.circle(backtorgb, extreme_left, 8, (0, 0, 255), -1)
+    cv2.circle(backtorgb, extreme_right, 8, (0, 255, 0), -1)
+    cv2.circle(backtorgb, extreme_top, 8, (255, 0, 0), -1)
+    res = cv2.circle(backtorgb, extreme_bottom, 8, (255, 255, 0), -1)
 
     # show the output image
     cv2.imshow("Extreme points", res)
@@ -186,5 +145,37 @@ for image in img_names:
     cv2.imshow('Leg bones with rectangle', test)
     print("Press any key to continue...")
     cv2.waitKey(0)
+    cv2.destroyAllWindows()
 
-cv2.destroyAllWindows()
+
+if __name__ == '__main__':
+    arr = os.listdir(dataset_bow_legs_dir)
+    img_names = [a for a in arr if a.endswith('png') and not (a.endswith('mask.png'))]
+    mask_names = [a for a in arr if a.endswith('mask.png')]
+
+    full_img_names = get_full_path_for_data(img_names)
+    full_mask_names = get_full_path_for_data(mask_names)
+    X = load_imgs(full_img_names)
+    Y = load_masks(full_mask_names)
+    print('Data loaded')
+
+    number_of_test_data = X.shape[0]
+    input_shape = X[0].shape
+    print('X.shape={} Y.shape={}'.format(X.shape, Y.shape))
+
+    # Load model and trained weights
+    model = load_model()
+    full_model = load_weights(model, "models/trained_model.hdf5")
+
+    # Evaluate loaded model on test data
+    UNet = model
+
+    U = model.compile(optimizer=RMSprop(lr=0.0001), loss=bce_dice_loss, metrics=[dice_coeff])
+    U2 = full_model.compile(optimizer=RMSprop(lr=0.0001), loss=bce_dice_loss, metrics=[dice_coeff])
+    print("Model compiled")
+
+    mask = render_mask_for_image('uploads/!002115_.png', full_model)
+    angle_from_mask(mask)
+    print("Program finished successfully")
+
+
