@@ -1,0 +1,100 @@
+*,
+*::after,
+*::before {
+  margin: 0;
+  padding: 0;
+  box-sizing: inherit;
+}
+
+html {
+  font-size: 62.5%;
+}
+
+body {
+  box-sizing: border-box;
+  padding: 10rem;
+  letter-spacing: 1.1px;
+  background-color: white;
+}
+
+
+.container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+
+    padding: 4rem;
+    background: #00CAE7;
+    border-radius: 10px;
+}
+
+.title {
+    padding-top: 5rem;
+    padding-bottom: 5rem;
+    color: white;
+    text-transform: uppercase;
+    font-size: 4.5rem;
+}
+
+.form-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 8rem;
+}
+
+
+
+.photo {
+    color: white;
+    font-size: 3rem;
+    padding-bottom: 3rem;
+}
+
+.photo__input {
+    color: white;
+}
+
+.photo__upload {
+
+}
+
+.custom-button {
+    display: block;
+    width: 203px;
+    margin: 30px auto 0;
+    padding: 7px 0;
+    border-radius: 4px;
+    background: #ff749b;
+    text-align: center;
+
+    color: #fff;
+    outline: none;
+    border-style: none;
+    text-decoration: none;
+
+    transition: all 0.2s ease 0s;
+}
+
+input:hover {
+    opacity: 0.8;
+}
+
+.result {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 4rem;
+    color: #FF749B;
+    background: white;
+    border-radius: 5px;
+}
+
+.result__title {
+    font-size: 2rem;
+    padding-bottom: 2rem;
+}
+
+.result__angle {
+    font-size: 2.5rem;
+}
