@@ -1,10 +1,12 @@
+import math
 import os.path
+
 import cv2
 import imutils as imutils
 import numpy as np
 from keras.models import model_from_json
 from keras.optimizers import RMSprop
-from skimage import img_as_ubyte, exposure
+from skimage import img_as_ubyte
 from skimage import morphology
 from skimage import transform, io
 
@@ -17,6 +19,7 @@ os.environ["CUDA_VISIBLE_DEVICES"] = '-1'
 dir_img_mask = 'results/new/'
 dataset_bow_legs_dir = 'uploads'
 im_shape = (512, 256)
+VISUAL = False
 
 
 # TODO refactor these funcs
@@ -100,9 +103,10 @@ def render_mask_for_image(im_name, trained_model):
     pr = remove_small_regions(pr, 0.005 * np.prod(im_shape))
     pr_out = img_as_ubyte(pr)
 
-    cv2.imshow("Mask for image", pr_out)
-    cv2.waitKey(0)
-    print("Render mask for image - done")
+    if VISUAL:
+        cv2.imshow("Mask for image", pr_out)
+        cv2.waitKey(0)
+        print("Render mask for image - done")
     return pr_out
 
 
@@ -129,9 +133,10 @@ def angle_from_mask(_mask):
     cv2.circle(backtorgb, extreme_top, 8, (255, 0, 0), -1)
     res = cv2.circle(backtorgb, extreme_bottom, 8, (255, 255, 0), -1)
 
-    # show the output image
-    cv2.imshow("Extreme points", res)
-    cv2.waitKey(0)
+    if VISUAL:
+        # show the output image
+        cv2.imshow("Extreme points", res)
+        cv2.waitKey(0)
 
     # TODO Refactor
     # draw contours for first bone
@@ -142,10 +147,50 @@ def angle_from_mask(_mask):
     x, y, w, h = cv2.boundingRect(contours[1])
     test = cv2.rectangle(backtorgb, (x, y), (x + w, y + h), (0, 255, 0), 2)
 
-    cv2.imshow('Leg bones with rectangle', test)
-    print("Press any key to continue...")
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
+    if VISUAL:
+        cv2.imshow('Leg bones with rectangle', test)
+        print("Press any key to continue...")
+        cv2.waitKey(0)
+        cv2.destroyAllWindows()
+    [vx1, vy1, _, _] = cv2.fitLine(contours[0], cv2.cv2.DIST_L2, 0, 0.01, 0.01)
+    [vx2, vy2, _, _] = cv2.fitLine(contours[1], cv2.cv2.DIST_L2, 0, 0.01, 0.01)
+    vec1 = np.squeeze(np.asarray([vx1, vy1]))
+    vec2 = np.squeeze(np.asarray([vx2, vy2]))
+    print("Vectors {} and {}".format(vec1, vec2))
+    return angle_between(vec1, vec2)
+
+
+def unit_vector(vector):
+    """ Returns the unit vector of the vector.  """
+    return vector / np.linalg.norm(vector)
+
+
+def angle_between(v1, v2):
+    """ Returns the angle in radians between vectors 'v1' and 'v2'::
+
+            >>> angle_between((1, 0, 0), (0, 1, 0))
+            1.5707963267948966
+            >>> angle_between((1, 0, 0), (1, 0, 0))
+            0.0
+            >>> angle_between((1, 0, 0), (-1, 0, 0))
+            3.141592653589793
+    """
+    v1_u = unit_vector(v1)
+    v2_u = unit_vector(v2)
+    in_radians = np.arccos(np.clip(np.dot(v1_u, v2_u), -1.0, 1.0))
+    return abs(180 - math.degrees(in_radians))
+
+
+def build_model():
+    m = load_model()
+    loaded_m = load_weights(m, "models/trained_model.hdf5")
+    loaded_m.compile(optimizer=RMSprop(lr=0.0001), loss=bce_dice_loss, metrics=[dice_coeff])
+    return loaded_m
+
+
+def angle_for_image(path, predicting_model):
+    mask = render_mask_for_image(path, predicting_model)
+    return angle_from_mask(mask)
 
 
 if __name__ == '__main__':
@@ -170,12 +215,13 @@ if __name__ == '__main__':
     # Evaluate loaded model on test data
     UNet = model
 
-    U = model.compile(optimizer=RMSprop(lr=0.0001), loss=bce_dice_loss, metrics=[dice_coeff])
+    # U = model.compile(optimizer=RMSprop(lr=0.0001), loss=bce_dice_loss, metrics=[dice_coeff])
     U2 = full_model.compile(optimizer=RMSprop(lr=0.0001), loss=bce_dice_loss, metrics=[dice_coeff])
     print("Model compiled")
 
-    mask = render_mask_for_image('uploads/!002115_.png', full_model)
-    angle_from_mask(mask)
-    print("Program finished successfully")
+    mask = render_mask_for_image('uploads/photo_002115_.png', full_model)
+    print("Angle {0:.2f}".format(angle_from_mask(mask)))
 
-
+    # To just test calculating angle.
+    # model = build_model()
+    # print("Angle {0:.2f}".format(angle_for_image('uploads/photo_002115_.png',model)))
