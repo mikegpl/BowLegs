@@ -156,7 +156,6 @@ def angle_from_mask(_mask):
     [vx2, vy2, _, _] = cv2.fitLine(contours[1], cv2.cv2.DIST_L2, 0, 0.01, 0.01)
     vec1 = np.squeeze(np.asarray([vx1, vy1]))
     vec2 = np.squeeze(np.asarray([vx2, vy2]))
-    print("Vectors {} and {}".format(vec1, vec2))
     return angle_between(vec1, vec2)
 
 
