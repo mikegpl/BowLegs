@@ -8,6 +8,6 @@ theano
 scikit-image
 pandas
 pip>=19.3.0
-tensorflow==2.0.0
+tensorflow==2.0.1
 keras==2.3.1
 keras-applications==1.0.8
